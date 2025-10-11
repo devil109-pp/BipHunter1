@@ -1,90 +1,198 @@
-# Cryptocurrency Wallet Checker
+# Crypto Wallet Checker
 
 ## Overview
+A cryptocurrency wallet generator that creates random BIP39 12-word seed phrases and checks Bitcoin, Ethereum, and USDT balances in real-time via blockchain APIs. The application features a beautiful dark-themed dashboard with real-time wallet generation, balance verification, and export functionality.
 
-This is a BIP39-based cryptocurrency wallet generator and balance checker application. The system generates random 12-word seed phrases, derives Bitcoin and Ethereum wallet addresses from them, and checks their balances across multiple cryptocurrencies (BTC, ETH, USDT) in real-time. The application features a continuous operation mode that generates wallets until stopped, tracking found wallets with non-zero balances for potential recovery scenarios.
+## Current State
+Fully functional MVP with:
+- ✅ BIP39 wallet generation (12-word seed phrases)
+- ✅ Bitcoin, Ethereum, and USDT address derivation
+- ✅ Real-time balance checking via Blockchain.com and Etherscan APIs
+- ✅ Operations feed showing last 20 wallet checks
+- ✅ Found wallets section (balance > 0.00001)
+- ✅ Export functionality for found wallets
+- ✅ Start/Stop controls with real-time stats
+- ✅ Beautiful UI following Material Design principles
 
-## User Preferences
+## Recent Changes
+**October 11, 2025**
+- Initial implementation completed
+- Fixed bitcoinjs-lib initialization with BIP32Factory and tiny-secp256k1
+- Fixed frontend API response handling
+- Implemented complete wallet generation loop with proper state management
+- Added comprehensive UI with ControlPanel, OperationsFeed, and FoundWallets components
+- Successfully tested all features end-to-end
 
-Preferred communication style: Simple, everyday language.
+## Project Architecture
 
-## System Architecture
+### Frontend
+- **Framework**: React with TypeScript
+- **State Management**: React hooks with refs for real-time updates
+- **Data Fetching**: TanStack Query
+- **Styling**: Tailwind CSS with custom design tokens
+- **UI Components**: Shadcn/UI components (Card, Button, Badge, ScrollArea, etc.)
+- **Routing**: Wouter
 
-### Frontend Architecture
+### Backend
+- **Framework**: Express.js
+- **Crypto Libraries**: 
+  - bip39 for mnemonic generation
+  - bip32 with tiny-secp256k1 for Bitcoin key derivation
+  - bitcoinjs-lib for Bitcoin address generation
+  - ethers.js for Ethereum wallet derivation
+- **APIs**: 
+  - Blockchain.com API for Bitcoin balance checking
+  - Etherscan API for Ethereum and USDT balance checking
 
-**Framework**: React with TypeScript using Vite as the build tool and development server.
+### Key Components
 
-**UI Component System**: Shadcn UI (New York variant) built on Radix UI primitives with Tailwind CSS for styling. The design follows Material Design principles adapted for crypto dashboards, prioritizing data density and real-time updates.
+#### Control Panel (`client/src/components/ControlPanel.tsx`)
+- Large circular Start/Stop buttons
+- Real-time statistics display:
+  - Total Operations counter
+  - Found Wallets counter
+  - Operations per second (speed indicator)
+- Running status indicator with pulsing animation
 
-**State Management**: React hooks (useState, useEffect, useRef) for local component state. TanStack React Query handles server state management with custom query client configuration that disables automatic refetching.
+#### Operations Feed (`client/src/components/OperationsFeed.tsx`)
+- Displays last 20 wallet generation operations
+- Shows truncated seed phrases with copy functionality
+- Displays Bitcoin and Ethereum addresses
+- Balance badges for BTC, ETH, and USDT
+- Auto-scrolls to show latest operations
+- Relative timestamps
 
-**Routing**: Wouter for lightweight client-side routing with a single main route (Home) and 404 fallback.
+#### Found Wallets (`client/src/components/FoundWallets.tsx`)
+- Prominent display for wallets with balance > 0.00001
+- Expandable cards showing full details
+- Copy functionality for seed phrases and addresses
+- Export to JSON functionality
+- Beautiful empty state
 
-**Layout Pattern**: Two-column responsive layout (mobile stacks vertically):
-- Left column (~1/3 width): Control panel with start/stop buttons and statistics
-- Right column (~2/3 width): Live operations feed and found wallets display
+### Data Flow
+1. User clicks START button
+2. Frontend enters running state and begins infinite loop
+3. Each iteration:
+   - Generates random 12-word BIP39 mnemonic
+   - Derives Bitcoin address (BIP44 path: m/44'/0'/0'/0/0)
+   - Derives Ethereum address
+   - Checks balances via external APIs
+   - Updates operations feed and statistics
+4. If wallet has balance > 0.00001, adds to found wallets
+5. User clicks STOP to halt generation
 
-**Real-time Updates**: Client-side polling loop that continuously generates wallets when running, using async/await patterns and ref-based state tracking to prevent race conditions.
+### API Endpoints
 
-### Backend Architecture
+#### POST /api/generate-wallet
+Generates a new wallet and checks balances.
 
-**Server Framework**: Express.js with TypeScript running on Node.js.
+**Response:**
+```json
+{
+  "id": "wallet-123456789-abc123",
+  "seedPhrase": "word1 word2 ... word12",
+  "btcAddress": "1ABC...",
+  "ethAddress": "0xABC...",
+  "btcBalance": 0.00000000,
+  "ethBalance": 0.00000000,
+  "usdtBalance": 0.00,
+  "totalBalance": 0.00,
+  "isFound": false,
+  "timestamp": "2025-10-11T22:00:00.000Z"
+}
+```
 
-**API Design**: RESTful endpoints with a single primary route (`/api/generate-wallet`) that handles wallet generation and balance checking.
+## Environment Variables
+- `BLOCKCHAIN_API_KEY`: API key for Blockchain.com (Bitcoin balance checks)
+- `ETHERSCAN_API_KEY`: API key for Etherscan (Ethereum and USDT balance checks)
+- `SESSION_SECRET`: Session secret for Express
+- `NODE_ENV`: Environment mode (development/production)
 
-**Wallet Generation Logic**:
-- Uses `bip39` library to generate 12-word mnemonic seed phrases (128-bit entropy)
-- Derives Bitcoin addresses via `bitcoinjs-lib` using BIP44 path `m/44'/0'/0'/0/0` with P2PKH format
-- Derives Ethereum addresses via `ethers.js` from the same mnemonic
-- Initializes ECC (Elliptic Curve Cryptography) using `tiny-secp256k1` for Bitcoin operations
+## Design System
 
-**Balance Checking Strategy**: External API calls to blockchain services:
-- Bitcoin: blockchain.info API for address balance queries
-- Ethereum/USDT: (Implementation indicates external API usage, likely Etherscan or similar)
+### Color Palette (Dark Theme)
+- Background: `220 20% 12%` (deep slate)
+- Card Surface: `220 18% 16%` (elevated panels)
+- Primary (Success): `142 76% 45%` (vibrant green)
+- Destructive (Stop): `0 84% 60%` (bright red)
+- Bitcoin: `25 95% 53%` (orange)
+- Ethereum: `221 83% 53%` (blue)
+- USDT: `142 71% 45%` (green)
 
-**Error Handling**: Custom error middleware that normalizes status codes and messages, with errors propagated back to client.
+### Typography
+- **Font Family**: Inter (sans-serif), JetBrains Mono (monospace)
+- **Headings**: 600-700 weight, -0.02em tracking
+- **Body**: 400-500 weight
+- **Monospace** (addresses/hashes): JetBrains Mono
+- **Metrics**: 600 weight, tabular numbers
 
-**Development Mode**: Vite middleware integration in development with HMR (Hot Module Replacement) support. Production serves static files from dist/public.
+### Spacing
+- Consistent spacing: 3, 4, 6, 8, 12 (Tailwind units)
+- Container: max-w-7xl with px-4 padding
+- Layout: Two-column (1/3 control panel, 2/3 operations/found wallets)
 
-### Data Storage
+### Animations
+- Start button: Pulse glow animation when active
+- New operations: Slide-in from top
+- Found wallets: Subtle shake + border glow
+- Status indicator: Pulsing green dot when running
 
-**Current Implementation**: In-memory storage using a Map-based storage layer (`MemStorage` class) for user data. No database persistence is currently active despite Drizzle ORM being configured.
+## Development
 
-**Schema Definition**: Drizzle ORM configured with PostgreSQL dialect, schema located in `shared/schema.ts`, but appears unused in the current implementation.
+### Running Locally
+```bash
+npm run dev
+```
+Starts Express server on port 5000 with Vite dev server for frontend.
 
-**Data Models**:
-- **Operation**: Represents each wallet generation attempt with seed phrase, addresses, balances, status (pending/checking/success/error), and timestamp
-- **FoundWallet**: Subset of Operation data for wallets with balance > 0.00001
-- Client-side state manages arrays of these objects with no backend persistence
+### Testing
+The application has been tested end-to-end with:
+- Wallet generation and display
+- Start/Stop functionality
+- Real-time statistics updates
+- Copy to clipboard features
+- Toast notifications
 
-**Rationale**: The in-memory approach suggests this is a utility tool for one-off sessions rather than a long-term wallet tracking system. Database integration is prepared but not implemented, allowing for future persistence if needed.
+### Known Limitations
+- Blockchain.com API has rate limits (429 errors expected with rapid requests)
+- Etherscan API has rate limits (5 calls/second on free tier)
+- Balance checking is sequential and may slow generation speed
+- In-memory storage (no persistence between server restarts)
 
-### External Dependencies
+## User Guide
 
-**Blockchain Libraries**:
-- `bip39`: BIP39 mnemonic phrase generation and validation
-- `bitcoinjs-lib`: Bitcoin address derivation and transaction handling
-- `ethers.js`: Ethereum wallet management and address derivation
-- `tiny-secp256k1`: Elliptic curve cryptography for Bitcoin
+### How to Use
+1. **Start Generation**: Click the green START button
+   - Status changes to "Running" with pulsing green indicator
+   - Wallets begin generating automatically
+   - Operations feed updates in real-time
 
-**External APIs**:
-- Blockchain.info API for Bitcoin balance queries (requires optional API key via `BLOCKCHAIN_API_KEY` environment variable)
-- Ethereum balance checking service (implementation details in incomplete code)
+2. **Monitor Progress**: 
+   - Total Operations counter shows number of wallets checked
+   - Operations per second shows generation speed
+   - Found Wallets counter shows successful discoveries
 
-**UI Component Libraries**:
-- Radix UI primitives (29 components including dialog, dropdown, toast, etc.)
-- Tailwind CSS for utility-first styling
-- Lucide React for iconography
-- `class-variance-authority` and `clsx` for conditional className management
+3. **View Operations**:
+   - Last 20 operations displayed in feed
+   - Each shows seed phrase, addresses, and balances
+   - Click copy buttons to copy seed phrases or addresses
 
-**Development Tools**:
-- Replit-specific plugins: cartographer, dev-banner, runtime-error-modal
-- TypeScript for type safety across client/server
-- ESBuild for production server bundling
+4. **Stop Generation**: Click the red STOP button
+   - Generation halts immediately
+   - All data remains visible
 
-**Database (Configured but Unused)**:
-- `@neondatabase/serverless`: Neon PostgreSQL serverless driver
-- `drizzle-orm`: Type-safe ORM with PostgreSQL support
-- `drizzle-kit`: Schema management and migrations
+5. **Export Found Wallets**:
+   - Click Export button in Found Wallets section
+   - Downloads JSON file with all wallet details
 
-**Design Tokens**: Custom CSS variables for theming with dark mode as default, using HSL color space for consistent color manipulation across light/dark modes.
+### Security Notice
+⚠️ **Important**: This application generates random seed phrases for educational purposes. Never use wallets generated by unknown tools for storing real cryptocurrency. The probability of finding a wallet with funds is astronomically low.
+
+## Future Enhancements
+- Persistent storage for found wallets
+- Support for additional cryptocurrencies
+- Configurable balance threshold
+- Performance metrics and charts
+- Batch export options (CSV format)
+- Custom derivation paths
+- Multi-threading for faster generation
